@@ -1,0 +1,56 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    networks:
+      - app-network
+      
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    ports:
+      - ${BACK_PORT}:${BACK_PORT}
+    networks:
+      - app-network
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: true
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
+    driver: bridge
